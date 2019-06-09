@@ -1,3 +1,16 @@
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+build
+
 # Prerequisites
 *.d
 
@@ -30,3 +43,12 @@
 *.exe
 *.out
 *.app
+
+# specially generated
+git_info.hpp
+
+# Backup files
+*~
+
+# Log files
+*.log
