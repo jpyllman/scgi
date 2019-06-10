@@ -130,6 +130,7 @@ private:
           {
             // let app code check header
 
+            // change timeout before read a lot of data?
             // read rest of data if there is anything
             std::size_t content_length = 0;
             if( req.count( "CONTENT_LENGTH" ) > 0 )
@@ -195,18 +196,18 @@ private:
 
       if( !self->socket_.is_open() )
       {
-        self->log_->debug( "=scgi::session::check_deadline socket already closed" );
-        self->log_->trace( "<scgi::session::check_deadline() ->" );
+        self->log_->debug( "=scgi::session::check_deadline lamda socket already closed" );
         return;
       }
 
       if( ( deadline.expiry() <= boost::asio::steady_timer::clock_type::now() ) )
       {
-        self->log_->debug( "=scgi::session::check_deadline lamda stop" );
+        self->log_->debug( "=scgi::session::check_deadline lamda expired so stop" );
         self->stop();
       }
       else
       {
+        self->log_->debug( "=scgi::session::check_deadline lamda not expired so start over" );
         self->check_deadline( deadline );
       }
     } );
