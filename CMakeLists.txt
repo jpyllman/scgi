@@ -77,4 +77,4 @@ endif()
                      
 add_subdirectory(thirdparty)
 add_subdirectory(ba_co)
-
+add_subdirectory(ba_th)
