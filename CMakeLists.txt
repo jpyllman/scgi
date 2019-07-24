@@ -76,5 +76,6 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
                      
 add_subdirectory(thirdparty)
+add_subdirectory(libscgi)
 add_subdirectory(ba_co)
 
