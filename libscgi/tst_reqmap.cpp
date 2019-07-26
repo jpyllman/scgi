@@ -1,24 +1,26 @@
+#define CATCH_CONFIG_MAIN
+#include <catch2/catch.hpp>
+
 #include "libscgi.hpp"
 
-#include <iostream>
-
-int main()
+TEST_CASE( "minimal SCGI header", "[basic]" )
 {
-  scgi::request_map req;
-  std::cout << req.size() << ", " << req.capacity() << '\n';
-
+  // the value 28 is very sensetive to the string **WARNING**
   std::vector<std::byte> in_data{28};
-  static const char *x = "24:CONTENT_LENGTH\0000\000SCGI\0001\000,";
-  for( int i = 0; i < 28; ++i ) in_data[i] = static_cast<std::byte>( x[i] );
+  const char *raw_data = "24:CONTENT_LENGTH\0000\000SCGI\0001\000,";
+  for( int i = 0; i < 28; ++i ) in_data[i] = static_cast<std::byte>( raw_data[i] );
 
-  auto [u, v] = scgi::check_scgi( in_data.data() );
-  std::cout << "in_data check -> " << u << ", " << v << '\n';
+  REQUIRE( in_data.size() == 28 );
 
-  auto z = req.parse_scgi_header( in_data.data() + v, u );
-  std::cout << "in_data NO bytes read -> " << z << '\n';
+  auto [header_size, start_size] = scgi::check_scgi( in_data.data() );
+  REQUIRE( start_size == 3 );
+  REQUIRE( header_size == 24 );
+  REQUIRE( in_data[( start_size + header_size )] == (std::byte)',' ); // next 'char' should be a ','
 
-  bool y = req.contains( "SCGI" );
-  std::cout << "req.contains() -> " << y << '\n';
-  if( y )
-    std::cout << "req.at() -> " << req.at( "SCGI" ) << "\n";
+  scgi::request_map rmap;
+  auto read_size = rmap.parse_scgi_header( in_data.data() + start_size, header_size );
+  REQUIRE( read_size == header_size );
+
+  REQUIRE( rmap.at( "SCGI") == "1" );
+  REQUIRE( rmap.at( "CONTENT_LENGTH" ) == "0" );
 }
