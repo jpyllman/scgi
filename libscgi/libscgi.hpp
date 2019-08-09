@@ -45,6 +45,7 @@ private:
   // std::array<std::pair<std::string_view, std::string_view>, 48> index;
 };
 
-std::tuple<std::size_t, std::size_t> check_scgi( std::byte const * );
+std::tuple<std::size_t, std::size_t> check_netstring( std::byte const *, bool = true );
+std::tuple<std::size_t, std::size_t> check_scgi( std::byte const *, bool = true );
 
 } // namespace scgi

@@ -4,6 +4,7 @@
 
 namespace scgi {
 
+static std::regex netstring_begin_re( R"((\d+):.*)" );
 static std::regex scgi_begin_re( R"((\d+):CONTENT_LENGTH)" );
 
 std::size_t request_map::parse_scgi_header( std::byte const *scgi, std::size_t sz )
@@ -34,7 +35,31 @@ std::size_t request_map::parse_scgi_header( std::byte const *scgi, std::size_t s
   return pos;
 }
 
-std::tuple<std::size_t, std::size_t> check_scgi( std::byte const *scgi )
+std::tuple<std::size_t, std::size_t> check_netstring( std::byte const *scgi, bool only_check_beginning )
+{
+  std::size_t bytes_in_head = 0;
+  std::size_t size_of_start = 0;
+
+  std::cmatch m;
+  if( std::regex_match( reinterpret_cast<char const *>( scgi ), m, netstring_begin_re ) )
+  {
+    bytes_in_head = static_cast<std::size_t>( std::atol( m[1].first ) );
+    size_of_start = static_cast<std::size_t>( m[1].length() + 1u );
+  }
+
+  // The last character of the header should be a ','
+  if( !only_check_beginning && ( size_of_start > 0 ) )
+  {
+    if( scgi[size_of_start + bytes_in_head] != static_cast<std::byte>( ',' ) )
+    {
+      size_of_start = bytes_in_head = 0;
+    }
+  }
+
+  return std::tuple<int, int>{bytes_in_head, size_of_start};
+}
+
+std::tuple<std::size_t, std::size_t> check_scgi( std::byte const *scgi, bool only_check_beginning )
 {
   std::size_t bytes_in_head = 0;
   std::size_t size_of_start = 0;
@@ -46,8 +71,15 @@ std::tuple<std::size_t, std::size_t> check_scgi( std::byte const *scgi )
     size_of_start = static_cast<std::size_t>( m[1].length() + 1u );
   }
 
-  // check if next byte is a ',' character
-  
+  // The last character of the header should be a ','
+  if( !only_check_beginning && ( size_of_start > 0 ) )
+  {
+    if( scgi[size_of_start + bytes_in_head] != static_cast<std::byte>( ',' ) )
+    {
+      size_of_start = bytes_in_head = 0;
+    }
+  }
+
   return std::tuple<int, int>{bytes_in_head, size_of_start};
 }
 
