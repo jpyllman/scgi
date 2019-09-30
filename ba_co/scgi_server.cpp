@@ -17,6 +17,16 @@
 #include <regex>
 #include <memory>
 
+#if defined( SCGI_SERVER_TRACE_LOG )
+#define SCGI_TRACE( a, b )                                                                                                         \
+  {                                                                                                                                \
+    a->trace( b );                                                                                                                 \
+  }
+#else
+#define SCGI_TRACE( a, b )                                                                                                         \
+  {}
+#endif
+
 namespace scgi {
 
 static std::regex scgi_begin_re( R"((\d+):CONTENT_LENGTH)" );
@@ -72,33 +82,34 @@ public:
     if( log_ == nullptr )
       log_ = spdlog::null_logger_mt( "null" );
 
-    log_->trace( ">scgi::session::session()" );
+    SCGI_TRACE( log_, ">scgi::session::session()" );
 
     timer_.expires_at( std::chrono::steady_clock::time_point::max() );
 
-    log_->trace( "<scgi::session::session()" );
+    SCGI_TRACE( log_, "<scgi::session::session()" );
   }
 
   ~session()
   {
-    log_->trace( ">scgi::session::~session()" );
-    log_->trace( "<scgi::session::~session()" );
+    SCGI_TRACE( log_, ">scgi::session::~session()" );
+    SCGI_TRACE( log_, "<scgi::session::~session()" );
   }
 
   void start()
   {
-    log_->trace( ">scgi::session::start()" );
+    SCGI_TRACE( log_, ">scgi::session::start()" );
 
-    co_spawn( socket_.get_executor(), [self = shared_from_this()] { return self->read_header(); }, boost::asio::detached );
+    co_spawn(
+        socket_.get_executor(), [self = shared_from_this()] { return self->read_header(); }, boost::asio::detached );
     check_deadline( timer_ );
 
-    log_->trace( "<scgi::session::start() ->" );
+    SCGI_TRACE( log_, "<scgi::session::start() ->" );
   }
 
 private:
   boost::asio::awaitable<void> read_header()
   {
-    log_->trace( ">scgi::session::read_header()" );
+    SCGI_TRACE( log_, ">scgi::session::read_header()" );
 
     try
     {
@@ -173,23 +184,23 @@ private:
     // session is over, do we really 'stop' the socket??
     stop();
 
-    log_->trace( "<scgi::session::read_header() ->" );
+    SCGI_TRACE( log_, "<scgi::session::read_header() ->" );
     co_return;
   }
 
   void stop()
   {
-    log_->trace( ">scgi::session::stop()" );
+    SCGI_TRACE( log_, ">scgi::session::stop()" );
 
     socket_.close();
     timer_.cancel();
 
-    log_->trace( "<scgi::session::stop() ->" );
+    SCGI_TRACE( log_, "<scgi::session::stop() ->" );
   }
 
   void check_deadline( boost::asio::steady_timer &deadline )
   {
-    log_->trace( ">scgi::session::check_deadline()" );
+    SCGI_TRACE( log_, ">scgi::session::check_deadline()" );
 
     deadline.async_wait( [self = shared_from_this(), &deadline]( boost::system::error_code const &ec ) {
       self->log_->debug( "=scgi::session::check_deadline lamda( {} )", ec.value() );
@@ -212,7 +223,7 @@ private:
       }
     } );
 
-    log_->trace( "<scgi::session::check_deadline() ->" );
+    SCGI_TRACE( log_, "<scgi::session::check_deadline() ->" );
   }
 
   boost::asio::ip::tcp::socket socket_;
@@ -228,7 +239,7 @@ boost::asio::awaitable<void> listener( boost::asio::ip::tcp::acceptor acceptor )
   auto log_ = spdlog::get( "ba_co" );
   if( log_ == nullptr )
     log_ = spdlog::null_logger_mt( "null" );
-  log_->trace( ">scgi::listener()" );
+  SCGI_TRACE( log_, ">scgi::listener()" );
 
   for( ;; )
   {
@@ -236,7 +247,7 @@ boost::asio::awaitable<void> listener( boost::asio::ip::tcp::acceptor acceptor )
     std::make_shared<session>( co_await acceptor.async_accept( boost::asio::use_awaitable ) )->start();
   }
 
-  log_->trace( "<scgi::listener() ->" );
+  SCGI_TRACE( log_, "<scgi::listener() ->" );
   co_return;
 }
 
@@ -252,7 +263,8 @@ int run_server( std::string const &addr, int port )
   boost::asio::signal_set signals( io_context, SIGINT, SIGTERM );
   signals.async_wait( [&]( auto, auto ) { io_context.stop(); } );
 
-  boost::asio::co_spawn( io_context,
+  boost::asio::co_spawn(
+      io_context,
       [&io_context, addr, port]() mutable {
         return listener( boost::asio::ip::tcp::acceptor(
             io_context, {boost::asio::ip::make_address_v4( addr ), static_cast<unsigned short>( port )} ) );
