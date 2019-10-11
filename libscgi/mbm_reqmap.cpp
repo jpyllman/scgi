@@ -1,76 +1,13 @@
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#include <celero/Celero.h>
 
 #include "libscgi.hpp"
 
-#include <regex>
+#include <iostream>
 
-TEST_CASE( "minimal valid netstring", "[basic]" )
+CELERO_MAIN
+
+std::size_t get_data( std::byte *data )
 {
-  std::vector<std::byte> in_data{3};
-  const char *raw_data = "0:,";
-  for( int i = 0; i < 3; ++i ) in_data[i] = static_cast<std::byte>( raw_data[i] );
-
-  REQUIRE( in_data.size() == 3 );
-
-  auto [header_size, start_size] = scgi::check_netstring( in_data.data() );
-  REQUIRE( start_size == 2 );
-  REQUIRE( header_size == 0 );
-  REQUIRE( in_data[start_size + header_size] == static_cast<std::byte>( ',' ) ); // next 'char' should be a ','
-  REQUIRE( ( start_size + header_size + 1u ) == in_data.size() );
-
-  // use sgi::check_netstringi() check the ',' char too
-  auto [xheader_size, xstart_size] = scgi::check_netstring( in_data.data(), false );
-  REQUIRE( xstart_size == 2 );
-  REQUIRE( xheader_size == 0 );
-
-  // this should fail, cause this is not valid SCGI
-  auto [yheader_size, ystart_size] = scgi::check_scgi( in_data.data(), false );
-  REQUIRE( ystart_size == 0 );
-  REQUIRE( yheader_size == 0 );
-}
-
-TEST_CASE( "minimal valid SCGI header", "[basic]" )
-{
-  scgi::request_header rmap;
-  std::byte *in_data = rmap.raw_header();
-
-  static const char raw_data[] = "24:CONTENT_LENGTH\0000\000SCGI\0001\000,";
-  std::size_t raw_data_size = ( sizeof( raw_data ) / sizeof( char ) ) - 1; // -1 because of 0 at end of string
-  for( int i = 0; i < raw_data_size; ++i ) in_data[i] = static_cast<std::byte>( raw_data[i] );
-  rmap.raw_header_size( raw_data_size );
-
-  REQUIRE( rmap.raw_header_size() == 28 );
-
-  auto [header_size, start_size] = scgi::check_scgi( in_data );
-  REQUIRE( start_size == 3 );
-  REQUIRE( header_size == 24 );
-  REQUIRE( in_data[start_size + header_size] == static_cast<std::byte>( ',' ) ); // next 'char' should be a ','
-  REQUIRE( ( start_size + header_size + 1u ) == rmap.raw_header_size() );
-
-  // use sgi::check_scgi() check the ',' char too
-  auto [xheader_size, xstart_size] = scgi::check_scgi( in_data, false );
-  REQUIRE( xstart_size == 3 );
-  REQUIRE( xheader_size == 24 );
-
-  // use sgi::check_netstringi() to get same result
-  auto [yheader_size, ystart_size] = scgi::check_netstring( in_data );
-  REQUIRE( ystart_size == 3 );
-  REQUIRE( yheader_size == 24 );
-
-  auto read_size = rmap.parse_scgi_header();
-  REQUIRE( read_size == header_size );
-
-  REQUIRE( rmap.size() == 2 );
-  REQUIRE( rmap.at( "SCGI" ) == "1" );
-  REQUIRE( rmap.at( "CONTENT_LENGTH" ) == "0" );
-}
-
-TEST_CASE( "example apache2 SCGI header", "[basic]" )
-{
-  scgi::request_header rmap;
-  std::byte *in_data = rmap.raw_header();
-
   static const unsigned char raw_data[] = {0x37, 0x36, 0x31, 0x3a, 0x43, 0x4f, 0x4e, 0x54, 0x45, 0x4e, 0x54, 0x5f, 0x4c, 0x45, 0x4e,
       0x47, 0x54, 0x48, 0x00, 0x30, 0x00, 0x53, 0x43, 0x47, 0x49, 0x00, 0x31, 0x00, 0x70, 0x72, 0x6f, 0x78, 0x79, 0x2d, 0x73, 0x63,
       0x67, 0x69, 0x2d, 0x70, 0x61, 0x74, 0x68, 0x69, 0x6e, 0x66, 0x6f, 0x00, 0x31, 0x00, 0x48, 0x54, 0x54, 0x50, 0x5f, 0x48, 0x4f,
@@ -108,37 +45,64 @@ TEST_CASE( "example apache2 SCGI header", "[basic]" )
       0x41, 0x54, 0x48, 0x5f, 0x49, 0x4e, 0x46, 0x4f, 0x00, 0x2f, 0x00, 0x50, 0x41, 0x54, 0x48, 0x5f, 0x54, 0x52, 0x41, 0x4e, 0x53,
       0x4c, 0x41, 0x54, 0x45, 0x44, 0x00, 0x70, 0x72, 0x6f, 0x78, 0x79, 0x3a, 0x73, 0x63, 0x67, 0x69, 0x3a, 0x2f, 0x2f, 0x31, 0x32,
       0x37, 0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x31, 0x3a, 0x38, 0x30, 0x30, 0x30, 0x2f, 0x2f, 0x00, 0x2c};
-  std::size_t raw_data_size = ( sizeof( raw_data ) / sizeof( char ) );
-  for( int i = 0; i < raw_data_size; ++i ) in_data[i] = static_cast<std::byte>( raw_data[i] );
-  rmap.raw_header_size( raw_data_size );
+  static constexpr std::size_t raw_size = sizeof( raw_data ) / sizeof( unsigned char );
+  static_assert( raw_size == 766 );
+  for( int i = 0; i < raw_size; ++i ) { data[i] = static_cast<std::byte>( raw_data[i] ); }
 
-  REQUIRE( rmap.raw_header_size() == 766 );
-
-  auto [header_size, start_size] = scgi::check_scgi( in_data );
-  REQUIRE( start_size == 4 );
-  REQUIRE( header_size == 761 );
-  REQUIRE( in_data[start_size + header_size] == static_cast<std::byte>( ',' ) ); // next 'char' should be a ','
-  REQUIRE( ( start_size + header_size + 1u ) == rmap.raw_header_size() );
-
-  // use sgi::check_scgi() check the ',' char too
-  auto [xheader_size, xstart_size] = scgi::check_scgi( in_data, false );
-  REQUIRE( xstart_size == 4 );
-  REQUIRE( xheader_size == 761 );
-
-  // use sgi::check_netstringi() to get same result
-  auto [yheader_size, ystart_size] = scgi::check_netstring( in_data );
-  REQUIRE( ystart_size == 4 );
-  REQUIRE( yheader_size == 761 );
-
-  auto read_size = rmap.parse_scgi_header();
-  REQUIRE( read_size == header_size );
-
-  REQUIRE( rmap.size() == 27 );
-  REQUIRE( rmap.at( "SCGI" ) == "1" );
-  REQUIRE( rmap.at( "CONTENT_LENGTH" ) == "0" );
-  REQUIRE( rmap.at( "SERVER_PROTOCOL" ) == "HTTP/1.1" );
-  REQUIRE( rmap.at( "REQUEST_METHOD" ) == "GET" );
-  REQUIRE( rmap.at( "REQUEST_SCHEME" ) == "http" );
-  REQUIRE( rmap.at( "REQUEST_URI" ) == "/" );
-  REQUIRE( rmap.at( "PATH_INFO" ) == "/" );
+  return raw_size;
 }
+
+class Req1Fixture : public celero::TestFixture
+{
+public:
+  virtual void setUp( const celero::TestFixture::ExperimentValue &x )
+  {
+    start_size = header_size = 0;
+    req_map.clear();
+
+    get_data( req_data );
+    std::tie( header_size, start_size ) = scgi::check_scgi( req_data );
+
+    req_map = scgi::parse_scgi_header( req_data + start_size, header_size );
+  }
+
+  virtual void tearDown() {}
+
+public:
+  std::size_t start_size = 0;
+  std::size_t header_size = 0;
+
+  std::byte req_data[1280];
+  std::unordered_map<std::string, std::string> req_map;
+};
+
+class Req2Fixture : public celero::TestFixture
+{
+public:
+  virtual void setUp( const celero::TestFixture::ExperimentValue &x )
+  {
+    req.clear();
+
+    req.raw_header_size( get_data( req.raw_header() ) );
+    req.check_scgi();
+
+    req.parse_scgi_header();
+  }
+
+  virtual void tearDown() {}
+
+public:
+  scgi::request_header req;
+};
+
+BASELINE_F( ParseRequest, StringMap, Req1Fixture, 10, 1'000'000 )
+{
+  req_map.clear();
+  req_map = scgi::parse_scgi_header( req_data + start_size, header_size );
+}
+
+BENCHMARK_F( ParseRequest, Optimized, Req2Fixture, 10, 1'000'000 ) { req.parse_scgi_header(); }
+
+BASELINE_F( LookupKeyValue, StringMap, Req1Fixture, 10, 50'000'000 ) { auto x = req_map.at( "SCGI" ); }
+
+BENCHMARK_F( LookupKeyValue, Optimized, Req2Fixture, 10, 50'000'000 ) { auto x = req.at( "SCGI" ); }
