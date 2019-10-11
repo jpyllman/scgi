@@ -1,5 +1,7 @@
 #include "scgi_server.hpp"
 
+#include <libscgi.hpp>
+
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/fmt/bin_to_hex.h>
@@ -14,7 +16,6 @@
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/write.hpp>
 
-#include <regex>
 #include <memory>
 
 #if defined( SCGI_SERVER_TRACE_LOG )
@@ -29,48 +30,7 @@
 
 namespace scgi {
 
-static std::regex scgi_begin_re( R"((\d+):CONTENT_LENGTH)" );
 constexpr static std::size_t small_buffer_size = 1536;
-
-std::tuple<std::size_t, std::size_t> check_scgi( std::byte const *scgi )
-{
-  std::size_t bytes_in_head = 0;
-  std::size_t size_of_start = 0;
-
-  std::cmatch m;
-  if( std::regex_match( reinterpret_cast<char const *>( scgi ), m, scgi_begin_re ) )
-  {
-    bytes_in_head = static_cast<std::size_t>( std::atol( m[1].first ) );
-    size_of_start = static_cast<std::size_t>( m[1].length() + 1u );
-  }
-
-  return std::tuple<int, int>{bytes_in_head, size_of_start};
-}
-
-std::unordered_map<std::string, std::string> parse_scgi_header( std::byte const *scgi, std::size_t sz )
-{
-  std::unordered_map<std::string, std::string> req;
-
-  if( scgi != nullptr )
-  {
-    std::size_t pos = 0;
-    char const *k_pos = reinterpret_cast<char const *>( scgi );
-
-    while( ( pos < sz ) )
-    {
-      std::size_t k_len = std::strlen( k_pos );
-      char const *v_pos = k_pos + k_len + 1;
-      std::size_t v_len = std::strlen( v_pos );
-
-      req.emplace( std::string_view( k_pos, k_len ), std::string_view( v_pos, v_len ) );
-
-      k_pos = v_pos + v_len + 1;
-      pos += k_len + v_len + 2;
-    }
-  }
-
-  return req;
-}
 
 class session : public std::enable_shared_from_this<session>
 {

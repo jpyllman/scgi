@@ -1,6 +1,7 @@
 project(libscgi_prj VERSION 0.0 LANGUAGES CXX)
 
 add_library(libscgi libscgi.cpp)
+target_include_directories(libscgi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 add_executable(exp_reqmap exp_reqmap.cpp exp_libscgi.cpp)
 target_link_libraries(exp_reqmap PRIVATE libscgi)
