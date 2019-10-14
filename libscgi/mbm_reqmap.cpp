@@ -95,14 +95,14 @@ public:
   scgi::request_header req;
 };
 
-BASELINE_F( ParseRequest, StringMap, Req1Fixture, 10, 1'000'000 )
+BASELINE_F( ParseRequest, StringMap, Req1Fixture, 10, 500'000 )
 {
   req_map.clear();
   req_map = scgi::parse_scgi_header( req_data + start_size, header_size );
 }
 
-BENCHMARK_F( ParseRequest, Optimized, Req2Fixture, 10, 1'000'000 ) { req.parse_scgi_header(); }
+BENCHMARK_F( ParseRequest, Optimized, Req2Fixture, 10, 500'000 ) { req.parse_scgi_header(); }
 
-BASELINE_F( LookupKeyValue, StringMap, Req1Fixture, 10, 50'000'000 ) { auto x = req_map.at( "SCGI" ); }
+BASELINE_F( LookupKeyValue, StringMap, Req1Fixture, 10, 30'000'000 ) { auto x = req_map.at( "SCGI" ); }
 
-BENCHMARK_F( LookupKeyValue, Optimized, Req2Fixture, 10, 50'000'000 ) { auto x = req.at( "SCGI" ); }
+BENCHMARK_F( LookupKeyValue, Optimized, Req2Fixture, 10, 30'000'000 ) { auto x = req.at( "SCGI" ); }

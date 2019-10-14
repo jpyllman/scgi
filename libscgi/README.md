@@ -24,5 +24,9 @@ Currently using std::optional instead of exception for the at() member function.
 Thats fine for me. As long as it is fast.
 
 ## Benchmark
+Benchmarking is hard. If benchmarks take to long it might slow your CPU down
+because of overheating. And then it will give you wrong results. Make sure this
+does not happen when you run the benchmars. Use the -l and -g command line
+options to run only parts of the benchmark.
 
 ## Test
