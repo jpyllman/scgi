@@ -40,6 +40,7 @@ TEST_CASE( "minimal valid SCGI header", "[basic]" )
   for( int i = 0; i < raw_data_size; ++i ) in_data[i] = static_cast<std::byte>( raw_data[i] );
   rmap.raw_header_size( raw_data_size );
 
+  REQUIRE( rmap.raw_header_max_size() == 1536 ); // this is not a good test, tries to show that std::byte is 1 byte
   REQUIRE( rmap.raw_header_size() == 28 );
 
   auto [header_size, start_size] = scgi::check_scgi( in_data );
@@ -112,6 +113,7 @@ TEST_CASE( "example apache2 SCGI header", "[basic]" )
   for( int i = 0; i < raw_data_size; ++i ) in_data[i] = static_cast<std::byte>( raw_data[i] );
   rmap.raw_header_size( raw_data_size );
 
+  REQUIRE( rmap.raw_header_max_size() == 1536 ); // this is not a good test, tries to show that std::byte is 1 byte
   REQUIRE( rmap.raw_header_size() == 766 );
 
   auto [header_size, start_size] = scgi::check_scgi( in_data );

@@ -73,9 +73,10 @@ public:
     raw_header_size_ = s;
     return raw_header_size_;
   }
+  std::size_t raw_header_max_size() const { return sizeof( raw_header_ ) / sizeof( std::byte ); }
 
 private:
-  std::byte raw_header_[1280];
+  std::byte raw_header_[1536];
   std::size_t raw_header_size_ = 0;
 
   std::size_t header_size = 0;

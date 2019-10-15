@@ -10,11 +10,13 @@ int main()
 
   scgi::request_header req;
   std::cout << "req.size() = " << req.size() << ", req.capacity() = " << req.capacity() << '\n';
+  std::cout << "req.raw_header_size() = " << req.raw_header_size() << ", req.raw_header_max_size() = " << req.raw_header_max_size() << "\n";
 
   std::byte *in_data = req.raw_header();
-  std::cout << "in_data = " << in_data << ", req = " << &req << "\n";
+  std::cout << "in_data = (ptr)" << in_data << ", req = (ptr)" << &req << "\n";
   for( int i = 0; i < raw_data_size; ++i ) in_data[i] = static_cast<std::byte>( raw_data[i] );
   req.raw_header_size( raw_data_size );
+  std::cout << "req.raw_header_size() = " << req.raw_header_size() << ", req.raw_header_max_size() = " << req.raw_header_max_size() << "\n";
 
   auto [NO_bytes_in_header, NO_bytes_in_start] = scgi::check_scgi( in_data, true );
   std::cout << "in_data check -> NO_bytes_in_header = " << NO_bytes_in_header << ", NO_bytes_in_start = " << NO_bytes_in_start
